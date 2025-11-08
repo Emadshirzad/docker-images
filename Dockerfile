@@ -1,6 +1,6 @@
 FROM php:8.3-alpine
 
-# Install dependencies (using apk for Alpine)
+# --- Install system dependencies ---
 RUN apk update && apk add --no-cache \
     bash \
     git \
@@ -16,13 +16,7 @@ RUN apk update && apk add --no-cache \
     gcc \
     g++ \
     make \
-    libc-dev
-
-# Install PHP extensions
-RUN docker-php-ext-install pdo_mysql zip gd bcmath bz2 soap intl
-
-# Install Node, npm, Chromium, and Puppeteer
-RUN apk add --no-cache \
+    libc-dev \
     nodejs \
     npm \
     chromium \
@@ -32,16 +26,29 @@ RUN apk add --no-cache \
     ca-certificates \
     ttf-freefont
 
-RUN npm install -g puppeteer@22.15.0 && \
-    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+# --- PHP extensions ---
+RUN docker-php-ext-install pdo_mysql zip gd bcmath bz2 soap intl
 
-# Install Composer
-RUN curl --silent --show-error https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# --- Puppeteer setup ---
+# Set proper env vars for Browsershot + Node
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    NODE_PATH=/usr/lib/node_modules \
+    PATH=$PATH:/usr/lib/node_modules/.bin
 
-# Install Laravel Envoy globally
+# Install Puppeteer globally (into /usr/lib/node_modules)
+RUN npm install -g puppeteer@22.15.0 --prefix /usr
+
+# --- Composer ---
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# --- Laravel Envoy (optional) ---
 RUN composer global require "laravel/envoy" \
     && ln -s /root/.composer/vendor/bin/envoy /usr/local/bin/envoy
 
-# Clean up
+# --- Cleanup ---
 RUN apk del autoconf gcc g++ make libc-dev \
-    && rm -rf /var/cache/apk/*
+    && rm -rf /var/cache/apk/* /tmp/*
+
+WORKDIR /var/www/html
+
