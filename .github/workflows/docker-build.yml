@@ -21,12 +21,12 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: quay.io
-          username: ${{ github.actor }}
+          username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD  }}
 
       - name: Build and push Docker image to Quay
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: quay.io/${{ github.actor }}/docker-quay-builder:latest
+          tags: quay.io/${{ secrets.QUAY_USERNAME }}/docker-quay-builder:latest
 
